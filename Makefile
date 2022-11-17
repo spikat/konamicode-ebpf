@@ -33,5 +33,5 @@ clean:
 	rm -fr ebpf/bin/
 	rm -f $(NAME)
 
-run:
-	sudo $(NAME)
+run: $(NAME)
+	sudo ./$(NAME)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/sirupsen/logrus"
@@ -23,9 +24,39 @@ var m = &manager.Manager{
 			},
 		},
 	},
-	Maps: []*manager.Map{{
-		Name: "konamicode_activation_counter",
-	}},
+}
+
+func checkKonamicode() (uint32, error) {
+	m, _, err := m.GetMap("konamicode_activation_counter")
+	if err != nil {
+		logrus.Printf("checkKonamicode error: %v\n", err)
+		return 0, err
+	}
+	var key, val uint32
+	err = m.Lookup(&key, &val)
+	if err != nil {
+		logrus.Printf("checkKonamicode error: %v\n", err)
+		return 0, err
+	}
+	return val, nil
+}
+
+func start_konamicode_watcher() {
+	go func() {
+		konamicode_check := time.NewTicker(time.Second)
+
+		for {
+			select {
+			case _ = <-konamicode_check.C:
+				val, err := checkKonamicode()
+				if err != nil {
+					continue
+				} else if val != 0 {
+					logrus.Printf("KONAMI CODE ACTIVATED \\o/ !\n")
+				}
+			}
+		}
+	}()
 }
 
 func main() {
@@ -38,15 +69,13 @@ func main() {
 	if err := m.Start(); err != nil {
 		panic(fmt.Errorf("failed to start manager: %w", err))
 	}
-
+	defer m.Stop(manager.CleanAll)
 	logrus.Println("manager successfully started")
+
+	start_konamicode_watcher()
 
 	logrus.Println("=> Cmd+C to stop")
 	wait()
-
-	if err := m.Stop(manager.CleanAll); err != nil {
-		logrus.Fatal(err)
-	}
 }
 
 // wait - Waits until an interrupt or kill signal is sent
