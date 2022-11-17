@@ -23,6 +23,9 @@ var m = &manager.Manager{
 			},
 		},
 	},
+	Maps: []*manager.Map{{
+		Name: "konamicode_activation_counter",
+	}},
 }
 
 func main() {
