@@ -1,8 +1,10 @@
+NAME	=	konamicode_detector
+$(NAME): all
+
 KERNEL_VERSION	=	$(shell uname -r)
 KERNEL_INCLUDE_PATH	=	/usr/src/linux-headers-$(KERNEL_VERSION)
 
 build-ebpf:
-	echo $(KERNEL_VERSION)
 	mkdir -p ebpf/bin
 	clang -D__KERNEL__ -D__ASM_SYSREG_H \
 		-Wno-unused-value \
@@ -22,12 +24,14 @@ build-ebpf:
 		-c -o - | llc -march=bpf -filetype=obj -o ebpf/bin/probe.o
 
 build:
-	go build -o bin/main .
+	go build -o $(NAME) .
 
 all: build-ebpf build
 
 clean:
-	rm -fr *~ bin/ ebpf/bin/ ebpf/*~
+	find . -name "*~"|xargs rm -f
+	rm -fr ebpf/bin/
+	rm -f $(NAME)
 
 run:
-	sudo bin/main
+	sudo $(NAME)
