@@ -26,6 +26,9 @@ build-ebpf:
 build:
 	go build -o $(NAME) .
 
+build-with-sound:
+	go build -tags libasound -o $(NAME) .
+
 all: build-ebpf build
 
 clean:

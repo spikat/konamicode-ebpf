@@ -1,3 +1,6 @@
+//go:build libasound
+// +build libasound
+
 // Copyright 2019 The Oto Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package sound
 
 import (
 	"fmt"
@@ -22,17 +25,6 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/oto/v2"
-)
-
-const (
-	// FormatFloat32LE is the format of 32 bits floats little endian.
-	FormatFloat32LE = 0
-
-	// FormatUnsignedInt8 is the format of 8 bits integers.
-	FormatUnsignedInt8 = 1
-
-	//FormatSignedInt16LE is the format of 16 bits integers little endian.
-	FormatSignedInt16LE = 2
 )
 
 func formatByteLength(format int) int {
@@ -48,14 +40,7 @@ func formatByteLength(format int) int {
 	}
 }
 
-type Note struct {
-	// Hz
-	freq int64
-	// ms
-	duration int64
-}
-
-type SineWave struct {
+type sineWave struct {
 	freq   float64
 	length int64
 	pos    int64
@@ -67,7 +52,7 @@ type SineWave struct {
 	remaining []byte
 }
 
-func (s *SineWave) Read(buf []byte) (int, error) {
+func (s *sineWave) Read(buf []byte) (int, error) {
 	if len(s.remaining) > 0 {
 		n := copy(buf, s.remaining)
 		copy(s.remaining, s.remaining[n:])
@@ -150,6 +135,26 @@ type SineWavePlayer struct {
 	notesQueue   chan Note
 }
 
+func (sp *SineWavePlayer) newSineWave(freq float64, duration time.Duration) *sineWave {
+	l := int64(sp.channelCount) * int64(formatByteLength(sp.format)) * int64(sp.sampleRate) * int64(duration) / int64(time.Second)
+	l = l / 4 * 4
+	return &sineWave{
+		freq:               freq,
+		length:             l,
+		playerChannelCount: sp.channelCount,
+		playerFormat:       sp.format,
+		playerSampleRate:   sp.sampleRate,
+	}
+}
+
+func (sp *SineWavePlayer) play(note Note) {
+	duration := time.Duration(note.Duration) * time.Millisecond
+	p := sp.ctx.NewPlayer(sp.newSineWave(float64(note.Freq), duration))
+	p.Play()
+	time.Sleep(duration)
+	p.Close()
+}
+
 func NewSineWavePlayer(sampleRate int, channelCount int, format int) (*SineWavePlayer, chan struct{}, error) {
 	sp := &SineWavePlayer{
 		sampleRate:   sampleRate,
@@ -163,26 +168,6 @@ func NewSineWavePlayer(sampleRate int, channelCount int, format int) (*SineWaveP
 	}
 	sp.ctx = ctx
 	return sp, ready, nil
-}
-
-func (sp *SineWavePlayer) NewSineWave(freq float64, duration time.Duration) *SineWave {
-	l := int64(sp.channelCount) * int64(formatByteLength(sp.format)) * int64(sp.sampleRate) * int64(duration) / int64(time.Second)
-	l = l / 4 * 4
-	return &SineWave{
-		freq:               freq,
-		length:             l,
-		playerChannelCount: sp.channelCount,
-		playerFormat:       sp.format,
-		playerSampleRate:   sp.sampleRate,
-	}
-}
-
-func (sp *SineWavePlayer) play(note Note) {
-	duration := time.Duration(note.duration) * time.Millisecond
-	p := sp.ctx.NewPlayer(sp.NewSineWave(float64(note.freq), duration))
-	p.Play()
-	time.Sleep(duration)
-	p.Close()
 }
 
 func (sp *SineWavePlayer) PlayLoop(wg *sync.WaitGroup) {
