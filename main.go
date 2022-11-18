@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/DataDog/dev/konamicode-ebpf/pkg/sound"
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/sirupsen/logrus"
 )
@@ -72,18 +73,18 @@ func openURL(url string) {
 	}
 }
 
-func playSong(sp *SineWavePlayer) {
+func playSong(sp *sound.SineWavePlayer) {
 	const (
 		freqC = 523
 		freqE = 659
 		freqG = 784
 	)
-	sp.QueueNote(Note{freqC, 500})
-	sp.QueueNote(Note{freqE, 500})
-	sp.QueueNote(Note{freqG, 500})
+	sp.QueueNote(sound.Note{Freq: freqC, Duration: 500})
+	sp.QueueNote(sound.Note{Freq: freqE, Duration: 500})
+	sp.QueueNote(sound.Note{Freq: freqG, Duration: 500})
 }
 
-func start_konamicode_watcher(sp *SineWavePlayer) {
+func start_konamicode_watcher(sp *sound.SineWavePlayer) {
 	go func() {
 		konamicode_check := time.NewTicker(time.Second)
 
@@ -110,7 +111,7 @@ func main() {
 		panic(fmt.Errorf("failed to init manager: %w", err))
 	}
 
-	sp, ready, err := NewSineWavePlayer(48000, 2, FormatSignedInt16LE)
+	sp, ready, err := sound.NewSineWavePlayer(48000, 2, sound.FormatSignedInt16LE)
 	if err != nil {
 		panic(fmt.Errorf(err.Error()))
 	}
