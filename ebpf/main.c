@@ -3,7 +3,6 @@
 #include "include/all.h"
 
 struct konamicode_status {
-    u64 last_press;
     int completion;
 };
 
