@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/DataDog/ebpf-manager v1.0.3
+	github.com/hajimehoshi/oto/v2 v2.3.1
 	github.com/sirupsen/logrus v1.9.0
 )
 
