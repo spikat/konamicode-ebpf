@@ -30,6 +30,15 @@ var m = &manager.Manager{
 			},
 		},
 	},
+	PerfMaps: []*manager.PerfMap{
+		{
+			Map: manager.Map{Name: "notes"},
+		},
+	},
+}
+
+type KonamiCodeCtx struct {
+	sp *sound.SineWavePlayer
 }
 
 func checkKonamicode() (uint32, error) {
@@ -105,21 +114,44 @@ func start_konamicode_watcher(sp *sound.SineWavePlayer) {
 	}()
 }
 
-func main() {
-	// Initialize the managers
-	if err := m.Init(bytes.NewReader(Probe)); err != nil {
-		panic(fmt.Errorf("failed to init manager: %w", err))
+func (kcCtx *KonamiCodeCtx) NotesPerfMapHandler(cpu int, data []byte, perfmap *manager.PerfMap, manager *manager.Manager) {
+	dataLen := uint64(len(data))
+	if dataLen < 16 {
+		logrus.Println("got note with wrong size %d\n", dataLen)
+		return
 	}
 
+	freq := ByteOrder.Uint64(data[0:8])
+	duration := ByteOrder.Uint64(data[8:16])
+
+	n := sound.Note{Freq: int64(freq), Duration: int64(duration)}
+	kcCtx.sp.QueueNote(n)
+}
+
+func main() {
+	kcCtx := &KonamiCodeCtx{}
 	sp, ready, err := sound.NewSineWavePlayer(48000, 2, sound.FormatSignedInt16LE)
 	if err != nil {
 		panic(fmt.Errorf(err.Error()))
 	}
 	<-ready
-
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go sp.PlayLoop(&wg)
+	kcCtx.sp = sp
+
+	notesPerfMap, ok := m.GetPerfMap("notes")
+	if !ok {
+		panic(fmt.Errorf("failed to get notes perfmap"))
+	}
+	notesPerfMap.PerfMapOptions = manager.PerfMapOptions{
+		DataHandler: kcCtx.NotesPerfMapHandler,
+	}
+
+	// Initialize the managers
+	if err := m.Init(bytes.NewReader(Probe)); err != nil {
+		panic(fmt.Errorf("failed to init manager: %w", err))
+	}
 
 	// Start
 	if err := m.Start(); err != nil {

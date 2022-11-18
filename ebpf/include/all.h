@@ -6,5 +6,6 @@
 #include "bpf_helpers.h"
 #include "bpf_tracing.h"
 #include "bpf_map.h"
+#include "notes.h"
 
 #endif
