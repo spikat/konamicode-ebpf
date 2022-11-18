@@ -5,7 +5,11 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
+	"os/user"
+	"strconv"
+	"syscall"
 	"time"
 
 	manager "github.com/DataDog/ebpf-manager"
@@ -41,6 +45,32 @@ func checkKonamicode() (uint32, error) {
 	return val, nil
 }
 
+func openURL(url string) {
+	cmd := exec.Command("xdg-open", url)
+
+	// get the initial user to open the browser
+	sudo_user := os.Getenv("SUDO_USER")
+	if sudo_user == "" {
+		sudo_user = "root" // try to open with root, but should not works
+	} else {
+		os.Setenv("HOME", "/home/"+sudo_user)
+	}
+	u, err := user.Lookup(sudo_user)
+	if err != nil {
+		logrus.Printf("user lookup failed: %s\n", err)
+		return
+	}
+	uid, _ := strconv.Atoi(u.Uid)
+	gid, _ := strconv.Atoi(u.Gid)
+	cmd.SysProcAttr = &syscall.SysProcAttr{}
+	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
+
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		logrus.Printf("exec failed: %s\n", err)
+	}
+}
+
 func start_konamicode_watcher() {
 	go func() {
 		konamicode_check := time.NewTicker(time.Second)
@@ -53,6 +83,8 @@ func start_konamicode_watcher() {
 					continue
 				} else if val != 0 {
 					logrus.Printf("KONAMI CODE ACTIVATED \\o/ !\n")
+					openURL("https://en.wikipedia.org/wiki/Konami_Code")
+					return
 				}
 			}
 		}
