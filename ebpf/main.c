@@ -26,7 +26,6 @@ struct sound_note {
 };
 
 long __attribute__((always_inline)) push_sound_note(void *ctx, struct sound_note *n) {
-    bpf_printk("pushing note to perf buffer\n");
     u32 cpu = bpf_get_smp_processor_id();
     return bpf_perf_event_output(ctx, &notes, cpu, n, sizeof(*n));
 }
