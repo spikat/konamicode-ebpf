@@ -21,7 +21,6 @@ int __attribute__((always_inline)) validate_konamicode_input(struct konamicode_s
 }
 
 int __attribute__((always_inline)) reset_konamicode(struct konamicode_status* ks) {
-    bpf_printk("konamicode reset\n");
     ks->completion = 0;
     int key = 0;
     return bpf_map_update_elem(&konamicode_sequence, &key, ks, BPF_ANY);
@@ -41,7 +40,7 @@ int __attribute__((always_inline)) activate_konamicode() {
         return -1;
     }
     *counter += 1;
-    bpf_printk("konamicode counter: %i\n", *counter);
+    bpf_printk("KONAMI CODE entered \\o/ (%i times)\n", *counter);
     return bpf_map_update_elem(&konamicode_activation_counter, &key, counter, BPF_ANY);
 }
 
@@ -57,7 +56,6 @@ int kprobe_input_handle_event(struct pt_regs *ctx)
         int key = 0;
         struct konamicode_status *ks = bpf_map_lookup_elem(&konamicode_sequence, &key);
         if (ks == NULL) {
-            bpf_printk("NULL\n");
             return 0;
         }
 
@@ -65,47 +63,47 @@ int kprobe_input_handle_event(struct pt_regs *ctx)
         switch (completion) {
         case 0:
             if (code == KEY_UP) {
-                bpf_printk("UP 1\n");
+                bpf_printk("UP\n");
                 return (validate_konamicode_input(ks));
             }
             break;
         case 1:
             if (code == KEY_UP) {
-                bpf_printk("UP 2\n");
+                bpf_printk("UP\n");
                 return (validate_konamicode_input(ks));
             }
             break;
         case 2:
             if (code == KEY_DOWN) {
-                bpf_printk("DOWN 1\n");
+                bpf_printk("DOWN\n");
                 return (validate_konamicode_input(ks));
             }
             break;
         case 3:
             if (code == KEY_DOWN) {
-                bpf_printk("DOWN 2\n");
+                bpf_printk("DOWN\n");
                 return (validate_konamicode_input(ks));
             }
             break;
         case 4:
             if (code == KEY_LEFT) {
-                bpf_printk("LEFT 1\n");
+                bpf_printk("LEFT\n");
                 return (validate_konamicode_input(ks));
             }
         case 5:
             if (code == KEY_RIGHT) {
-                bpf_printk("RIGHT 1\n");
+                bpf_printk("RIGHT\n");
                 return (validate_konamicode_input(ks));
             }
             break;
         case 6:
             if (code == KEY_LEFT) {
-                bpf_printk("LEFT 2\n");
+                bpf_printk("LEFT\n");
                 return (validate_konamicode_input(ks));
             }
         case 7:
             if (code == KEY_RIGHT) {
-                bpf_printk("RIGHT 2\n");
+                bpf_printk("RIGHT\n");
                 return (validate_konamicode_input(ks));
             }
             break;
@@ -123,7 +121,6 @@ int kprobe_input_handle_event(struct pt_regs *ctx)
             break;
         case 10:
             if (code == KEY_ENTER) {
-                bpf_printk("ENTER\n");
                 activate_konamicode();
                 return reset_konamicode(ks);
             }
