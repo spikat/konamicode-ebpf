@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"os/user"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -71,7 +72,18 @@ func openURL(url string) {
 	}
 }
 
-func start_konamicode_watcher() {
+func playSong(sp *SineWavePlayer) {
+	const (
+		freqC = 523
+		freqE = 659
+		freqG = 784
+	)
+	sp.QueueNote(Note{freqC, 500})
+	sp.QueueNote(Note{freqE, 500})
+	sp.QueueNote(Note{freqG, 500})
+}
+
+func start_konamicode_watcher(sp *SineWavePlayer) {
 	go func() {
 		konamicode_check := time.NewTicker(time.Second)
 
@@ -83,6 +95,7 @@ func start_konamicode_watcher() {
 					continue
 				} else if val != 0 {
 					logrus.Printf("KONAMI CODE ACTIVATED \\o/ !\n")
+					playSong(sp)
 					openURL("https://en.wikipedia.org/wiki/Konami_Code")
 					return
 				}
@@ -97,6 +110,16 @@ func main() {
 		panic(fmt.Errorf("failed to init manager: %w", err))
 	}
 
+	sp, ready, err := NewSineWavePlayer(48000, 2, FormatSignedInt16LE)
+	if err != nil {
+		panic(fmt.Errorf(err.Error()))
+	}
+	<-ready
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go sp.PlayLoop(&wg)
+
 	// Start
 	if err := m.Start(); err != nil {
 		panic(fmt.Errorf("failed to start manager: %w", err))
@@ -104,10 +127,12 @@ func main() {
 	defer m.Stop(manager.CleanAll)
 	logrus.Println("manager successfully started")
 
-	start_konamicode_watcher()
+	start_konamicode_watcher(sp)
 
 	logrus.Println("=> Cmd+C to stop")
 	wait()
+	sp.Close()
+	wg.Wait()
 }
 
 // wait - Waits until an interrupt or kill signal is sent
