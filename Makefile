@@ -23,13 +23,13 @@ build-ebpf:
 		ebpf/main.c \
 		-c -o - | llc -march=bpf -filetype=obj -o ebpf/bin/probe.o
 
-build:
+build: build-ebpf
 	go build -o $(NAME) .
 
-build-with-sound:
+build-with-sound: build-ebpf
 	go build -tags libasound -o $(NAME) .
 
-all: build-ebpf build
+all: build
 
 clean:
 	find . -name "*~"|xargs rm -f
@@ -37,4 +37,7 @@ clean:
 	rm -f $(NAME)
 
 run: $(NAME)
+	sudo ./$(NAME)
+
+run-with-sound: build-with-sound
 	sudo ./$(NAME)

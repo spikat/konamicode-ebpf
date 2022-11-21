@@ -8,6 +8,11 @@ This is just a fun konami code easter egg in ebpf
 
 > make run
 
+And with some sound (requires `libasound2-dev` installed):
+
+> make run-with-sound
+
+
 ## What it does
 
-When you succeed to enter the konami code, it will open the wikipedia page (and may be play a sound, if you have `libasound2-dev` installed).
+When you succeed to enter the konami code, it will open the wikipedia page.
